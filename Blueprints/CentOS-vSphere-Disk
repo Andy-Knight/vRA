@@ -1,0 +1,38 @@
+formatVersion: 1
+inputs:
+  vmQuantity:
+    type: integer
+    description: Enter number of VMs required
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'networkClassification:Static'
+        - tag: 'nsxBacked:No'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      count: '${input.vmQuantity}'
+      image: CentOS
+      flavor: Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      storage:
+        constraints:
+          - tag: 'storageClass:Silver'
+      attachedDisks:
+        - source: '${resource.Cloud_vSphere_Disk_1.id}'
+  Cloud_vSphere_Disk_1:
+    type: Cloud.vSphere.Disk
+    properties:
+      provisioningType: thin
+      capacityGb: 10
+      constraints:
+        - tag: 'storageClass:Gold'
