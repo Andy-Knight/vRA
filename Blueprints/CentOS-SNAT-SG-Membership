@@ -1,0 +1,32 @@
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_NSX_Network_1:
+    type: Cloud.NSX.Network
+    properties:
+      networkType: outbound
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'nsxBacked:Yes'
+        - tag: 'networkClassification:Dynamic'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS
+      flavor: Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_NSX_Network_1.id}'
+          securityGroups:
+            - '${resource.Cloud_SecurityGroup_1.id}'
+      storage:
+        constraints:
+          - tag: 'storageClass:Silver'
+  Cloud_SecurityGroup_1:
+    type: Cloud.SecurityGroup
+    properties:
+      securityGroupType: existing
+      constraints:
+        - tag: 'test:yes'
