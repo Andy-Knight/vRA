@@ -1,0 +1,59 @@
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'networkClassification:Static'
+        - tag: 'nsxBacked:No'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS-CloudInit
+      flavor: Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      storage:
+        constraints:
+          - tag: 'storageClass:Gold'
+      cloudConfig: |
+        #cloud-config
+        preserve_hostname: false
+        hostname: ${self.resourceName}
+        fqdn: ${self.resourceName}.corp.local
+        disk_setup:
+          /dev/sdb:
+            table_type: mbr
+            layout: true
+            overwrite: true
+        fs_setup:
+          - label: data-disk
+            filesystem: 'xfs'
+            device: /dev/sdb1
+            overwrite: true
+        network:
+          version: 1
+          config:
+            - type: physical
+              name: ens192
+              subnets:
+                - type: static
+                  address: ${resource.Cloud_vSphere_Machine_1.networks.address[0]}/${resource.Cloud_vSphere_Network_1.prefixLength}
+                  gateway: ${resource.Cloud_vSphere_Network_1.gateway}
+        runcmd:
+          - touch /tmp/iamhere.txt
+        mounts:
+          - ["/dev/sdb1", "/mnt/data"]
+      attachedDisks:
+        - source: '${resource.Cloud_vSphere_Disk_1.id}'
+  Cloud_vSphere_Disk_1:
+    type: Cloud.vSphere.Disk
+    properties:
+      capacityGb: 10
