@@ -1,3 +1,5 @@
+name: test22
+version: 1
 formatVersion: 1
 inputs:
   vmQuantity:
