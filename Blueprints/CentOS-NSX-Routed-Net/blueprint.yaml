@@ -1,3 +1,5 @@
+name: CentOS-NSX-Routed-Net
+version: 1
 formatVersion: 1
 inputs: {}
 resources:
