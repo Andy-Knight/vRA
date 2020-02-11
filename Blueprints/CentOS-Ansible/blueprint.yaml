@@ -1,0 +1,46 @@
+ormatVersion: 1
+inputs:
+  ServerGroups:
+    type: array
+    title: Ansible Groups
+    description: Select Ansible Groups
+    items:
+      type: string
+      enum:
+        - WebServers
+        - AppServers
+        - DbServers
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'nsxBacked:No'
+        - tag: 'networkClassification:Static'
+        - tag: 'location:EMEA'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS
+      cpuCount: 1
+      totalMemoryMB: 2048
+      customizationSpec: Linux
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'clusterType:Normal'
+  Cloud_Ansible_1:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource.Cloud_vSphere_Machine_1.*}'
+      osType: linux
+      account: ansible
+      username: admin
+      groups: '${input.ServerGroups}'
+      playbooks:
+        provision:
+          - /etc/ansible/playbooks/centos.yml
+      privateKeyFile: /home/admin/.ssh/ansible_private
