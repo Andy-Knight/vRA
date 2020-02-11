@@ -1,3 +1,5 @@
+name: CentOS-Basic
+version: 1
 formatVersion: 1
 inputs:
   vmQuantity:
