@@ -1,3 +1,5 @@
+name: CentOS-External-Disk
+version: 1
 formatVersion: 1
 inputs:
   vmQuantity:
