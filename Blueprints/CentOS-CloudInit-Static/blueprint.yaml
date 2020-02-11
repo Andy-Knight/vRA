@@ -1,3 +1,5 @@
+name: CentOS-CloudInit-Static
+version: 1
 formatVersion: 1
 inputs: {}
 resources:
