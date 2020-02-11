@@ -1,0 +1,25 @@
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_NSX_Network_1:
+    type: Cloud.NSX.Network
+    properties:
+      networkType: routed
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'nsxBacked:Yes'
+        - tag: 'networkClassification:Dynamic'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS
+      flavor: Linux-Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_NSX_Network_1.id}'
+          assignment: dynamic
+      storage:
+        constraints:
+          - tag: 'storageClass:Silver'
