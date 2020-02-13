@@ -1,5 +1,5 @@
 name: CentOS-SNAT-SG-Membership
-version: 2
+version: 2.1
 formatVersion: 1
 inputs: {}
 resources:
