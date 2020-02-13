@@ -15,7 +15,7 @@ resources:
     type: Cloud.vSphere.Machine
     properties:
       image: CentOS
-      flavor: Linux-Medium
+      flavor: Linux-Large
       constraints:
         - tag: 'clusterType:Normal'
         - tag: 'location:EMEA'
