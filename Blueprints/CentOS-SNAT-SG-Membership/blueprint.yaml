@@ -1,5 +1,5 @@
 name: CentOS-SNAT-SG-Membership
-version: 1
+version: 2
 formatVersion: 1
 inputs: {}
 resources:
@@ -15,7 +15,7 @@ resources:
     type: Cloud.vSphere.Machine
     properties:
       image: CentOS
-      flavor: Medium
+      flavor: Linux-Medium
       constraints:
         - tag: 'clusterType:Normal'
         - tag: 'location:EMEA'
