@@ -1,5 +1,5 @@
 name: CentOS-NSX-Private-Net
-version: 1.1
+version: 2.0
 formatVersion: 1
 inputs: {}
 resources:
