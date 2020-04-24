@@ -1,0 +1,80 @@
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'nsxBacked:No'
+        - tag: 'networkClassification:Static'
+        - tag: 'location:EMEA'
+  MooseFS_Master:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS8-CloudInit
+      flavor: Linux-Small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      cloudConfig: |
+        #cloud-config
+        preserve_hostname: false
+        hostname: mfs-master
+        fqdn: mfs-master.corp.local
+        runcmd:
+          - curl "https://ppa.moosefs.com/RPM-GPG-KEY-MooseFS" > /etc/pki/rpm-gpg/RPM-GPG-KEY-MooseFS
+          - curl "http://ppa.moosefs.com/MooseFS-3-el8.repo" > /etc/yum.repos.d/MooseFS.repo
+          - yum install moosefs-master moosefs-cgi moosefs-cgiserv moosefs-cli -y
+          - systemctl enable moosefs-master
+          - systemctl enable moosefs-cgiserve
+          - systemctl start moosefs-master
+          - systemctl start moosefs-cgiserve
+  MooseFS_Chunk:
+    type: Cloud.vSphere.Machine
+    dependsOn:
+      - MooseFS_Master
+    properties:
+      image: CentOS8-CloudInit
+      flavor: Linux-Small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      attachedDisks:
+        - source: '${resource.Cloud_vSphere_Disk_1.id}'
+      cloudConfig: |
+        #cloud-config
+        preserve_hostname: false
+        hostname: mfs-chunk
+        fqdn: mfs-chunk.corp.local
+        bootcmd:
+          - mkdir /mnt/mfs-chunks
+        disk_setup:
+          /dev/sdb:
+            table_type: gpt
+            layout: true
+            overwrite: true
+        fs_setup:
+          - label: mfs-chunks
+            filesystem: 'xfs'
+            device: /dev/sdb1
+            overwrite: true
+        mounts:
+          - ["/dev/sdb1", "/mnt/mfs-chunks"]
+        runcmd:
+          - curl "https://ppa.moosefs.com/RPM-GPG-KEY-MooseFS" > /etc/pki/rpm-gpg/RPM-GPG-KEY-MooseFS
+          - curl "http://ppa.moosefs.com/MooseFS-3-el8.repo" > /etc/yum.repos.d/MooseFS.repo
+          - yum install moosefs-chunkserver -y
+          - chown mfs:mfs /mnt/mfs-chunks
+          - chmod 770 /mnt/mfs-chunks
+          - echo '/mnt/mfs-chunks' >> /etc/mfs/mfshdd.cfg
+  Cloud_vSphere_Disk_1:
+    type: Cloud.vSphere.Disk
+    properties:
+      capacityGb: 10
