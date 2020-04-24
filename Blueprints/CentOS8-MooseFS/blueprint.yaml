@@ -1,3 +1,5 @@
+name: CentOS8-MooseFS
+version: 1.0
 formatVersion: 1
 inputs: {}
 resources:
