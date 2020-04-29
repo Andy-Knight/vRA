@@ -1,0 +1,20 @@
+---
+- hosts: AntMedia
+  vars_files:
+    - /etc/ansible/passwordVault.yml
+  vars:
+    ansible_become_pass: "{{ vault_sudo_password }}"  
+  become: true  
+  tasks:
+    - name: Install Fuse and Moosefs-client
+      yum:
+        name:
+          - fuse
+          - moosefs-client
+        state: present
+    - name: Create MooseFS Mount Directory
+      file:
+        path: /mnt/mfs
+        state: directory
+    - name: Mount MooseFS
+      command: mfsmount /mnt/mfs -H {{ mfsmasterserver }}
