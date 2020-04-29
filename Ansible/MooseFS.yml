@@ -1,0 +1,111 @@
+---
+- hosts: MooseFS
+  vars_files:
+    - /etc/ansible/passwordVault.yml
+  vars:
+    ansible_become_pass: "{{ vault_sudo_password }}" 
+  become: true
+  tasks:
+    - name: Install MooseFS GPG Key
+      get_url:
+        url: https://ppa.moosefs.com/RPM-GPG-KEY-MooseFS
+        dest: /etc/pki/rpm-gpg/RPM-GPG-KEY-MooseFS
+        force: no
+    - name: Install MooseFS Repo
+      get_url:
+        url: https://ppa.moosefs.com/MooseFS-3-el8.repo
+        dest: /etc/yum.repos.d/MooseFS.repo
+        force: no
+- hosts: MooseFSMaster
+  vars_files:
+    - /etc/ansible/passwordVault.yml
+  vars:
+    ansible_become_pass: "{{ vault_sudo_password }}"
+  become: true
+  tasks:
+    - name: Install MooseFS Master Packages
+      yum:
+        name:
+          - moosefs-master
+          - moosefs-cgi
+          - moosefs-cgiserv
+          - moosefs-cli
+        state: present
+    - name: Enable MooseFS Master
+      systemd:
+        name: moosefs-master
+        enabled: yes
+        state: started
+    - name: Enabled MooseFS CGI Server
+      systemd:
+        name: moosefs-cgiserv
+        enabled: yes
+        state: started
+    - name: Open MooseFS Master TCP Port 9421
+      firewalld:
+        port: 9421/tcp
+        zone: public
+        permanent: yes
+        state: enabled
+    - name: Open MooseFS CGI Server TCP Port 9425
+      firewalld:
+        port: 9425/tcp
+        zone: public
+        permanent: yes
+        state: enabled
+- hosts: MooseFSChunk
+  vars_files:
+    - /etc/ansible/passwordVault.yml
+  vars:
+    ansible_become_pass: "{{ vault_sudo_password }}"
+  become: true
+  tasks:
+    - name: Install MooseFS Chunk Server Packages
+      yum:
+        name: moosefs-chunkserver
+        state: present
+    - name: Partition Chunk Server Disk
+      parted:
+        device: /dev/sdb
+        number: 1
+        state: present
+        part_start: 0%
+        part_end: 100%
+        label: gpt
+        name: mfs-chunks
+    - name: Format Disk
+      filesystem:
+        fstype: xfs
+        dev: /dev/sdb1
+    - name: Create Mount Point
+      file:
+        path: /mnt/mfs-chunks
+        state: directory
+    - name: Populate /etc/fstab File and Mount
+      mount:
+        path: /mnt/mfs-chunks
+        src: /dev/sdb1
+        fstype: xfs
+        state: mounted
+    - name: Set Directory Ownership to mfs
+      file:
+        path: /mnt/mfs-chunks
+        owner: mfs
+        group: mfs
+        mode: '0770'
+    - name: Add Chunk Directory to mfshdd.cfg
+      lineinfile:
+        path: /etc/mfs/mfshdd.cfg
+        line: /mnt/mfs-chunks
+        insertafter: EOF
+    - name: Add MFS Master Hostname to mfschunkserver.cfg
+      lineinfile:
+        path: /etc/mfs/mfschunkserver.cfg
+        regexp: '^# MASTER_HOST = mfsmaster'
+        line: MASTER_HOST = {{ mfsmasterserver }}
+        backrefs: yes
+    - name: Enable MooseFS Chunk Server
+      systemd:
+        name: moosefs-chunkserver
+        enabled: yes
+        state: started
