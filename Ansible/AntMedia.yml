@@ -70,6 +70,11 @@
         owner: antmedia
         group: antmedia
         recurse: yes
+    - name: Extract LiveApp.war
+      unarchive:
+        src: /usr/local/antmedia/webapps/LiveApp.war
+        dest: /usr/local/antmedia/webapps/LiveApp
+        remote_src: yes
     - name: Create Streams Directory
       file:
         src: /mnt/mfs/streams
