@@ -59,6 +59,24 @@
         home: /usr/local/antmedia/
         shell: /bin/false
         system: yes
+    - name: Make Directory in MooseFS
+      file:
+        path: /mnt/mfs/streams
+        state: directory
+    - name: Make LiveApp Directory
+      file:
+        path: /usr/local/antmedia/webapps/LiveApp
+        state: directory
+        owner: antmedia
+        group: antmedia
+        recurse: yes
+    - name: Create Streams Directory
+      file:
+        src: /mnt/mfs/streams
+        dest: /usr/local/antmedia/webapps/LiveApp/streams
+        owner: antmedia
+        group: antmedia
+        state: link
     - name: Edit Antmedia Service File
       lineinfile:
         path: /usr/local/antmedia/antmedia.service
