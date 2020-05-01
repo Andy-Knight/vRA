@@ -13,7 +13,7 @@
         force: no
     - name: Install MooseFS Repo
       get_url:
-        url: https://ppa.moosefs.com/MooseFS-3-el8.repo
+        url: https://ppa.moosefs.com/MooseFS-3-el7.repo
         dest: /etc/yum.repos.d/MooseFS.repo
         force: no
 - hosts: MooseFSMaster
@@ -41,18 +41,20 @@
         name: moosefs-cgiserv
         enabled: yes
         state: started
-    - name: Open MooseFS Master TCP Port 9421
+    - name: Open MooseFS Master TCP Ports
       firewalld:
-        port: 9421/tcp
+        port: 9419-9421/tcp
         zone: public
         permanent: yes
         state: enabled
+        immediate: yes
     - name: Open MooseFS CGI Server TCP Port 9425
       firewalld:
         port: 9425/tcp
         zone: public
         permanent: yes
         state: enabled
+        immediate: yes
 - hosts: MooseFSChunk
   vars_files:
     - /etc/ansible/passwordVault.yml
