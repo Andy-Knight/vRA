@@ -3,7 +3,8 @@
   vars_files:
     - /etc/ansible/passwordVault.yml
   vars:
-    ansible_become_pass: "{{ vault_sudo_password }}"  
+    ansible_become_pass: "{{ vault_sudo_password }}"
+    ant_zip_file: "https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v1.9.0/ant-media-server-community-1.9.0-20191127_1738.zip"  
   become: true  
   tasks:
     - name: Install Fuse and Moosefs-client
@@ -11,10 +12,93 @@
         name:
           - fuse
           - moosefs-client
+          - unzip
+          - java-1.8.0-openjdk
+          - jsvc
         state: present
     - name: Create MooseFS Mount Directory
       file:
         path: /mnt/mfs
         state: directory
-    - name: Mount MooseFS
-      command: mfsmount /mnt/mfs -H {{ mfsmasterserver }}
+    - name: Updated /etc/fstab for MooseFS and Mount
+      mount:
+        path: /mnt/mfs
+        src: "{{ mfsmasterserver }}:"
+        fstype: moosefs
+        opts: defaults,mfsdelayedinit
+        state: mounted
+    - name: ANT Media Server Download (requires internet access)
+      get_url:
+        url: "{{ ant_zip_file }}"
+        dest: /tmp/ams.zip
+        force: no
+    - name: Unzip ANT Zip File
+      unarchive:
+        src: /tmp/ams.zip
+        dest: /tmp
+        remote_src: yes
+    - stat:
+        path: /usr/local/antmedia
+      register: antmedia_stat
+    - name: Move Ant Media Server Directory
+      command: mv /tmp/ant-media-server /usr/local/antmedia
+      when: antmedia_stat.stat.isdir is not defined
+    - name: Update file with OpenJdk Location
+      lineinfile:
+        path: /usr/local/antmedia/antmedia
+        regexp: '^JAVA_HOME="/usr/lib/jvm/java-8-oracle"'
+        line: JAVA_HOME="/usr/lib/jvm/jre-1.8.0-openjdk"
+        backrefs: yes
+    - name: Make Log Directory
+      file:
+        path: /usr/local/antmedia/log
+        state: directory
+    - name: Create User and Set Home Directory
+      user:
+        name: antmedia
+        home: /usr/local/antmedia/
+        shell: /bin/false
+        system: yes
+    - name: Edit Antmedia Service File
+      lineinfile:
+        path: /usr/local/antmedia/antmedia.service
+        regexp: '^ExecStart=/etc/init.d/antmedia'
+        line: ExecStart=/usr/local/antmedia/antmedia start
+        backrefs: yes
+    - name: Add User to Systemd
+      lineinfile:
+        path: /usr/local/antmedia/antmedia.service
+        insertafter: '^\[Service\]'
+        line: User=root
+        state: present
+    - name: Add Remain Option to Systemd
+      lineinfile:
+        path: /usr/local/antmedia/antmedia.service
+        insertafter: '^\[Service\]'
+        line: RemainAfterExit=yes
+        state: present
+    - name: Copy Antmedia Service File to Systemd
+      copy:
+        src: /usr/local/antmedia/antmedia.service
+        dest: /etc/systemd/system/antmedia.service
+        remote_src: yes
+        mode: '0755'
+    - name: Change Ownership of Antmedia Files
+      file:
+        path: /usr/local/antmedia/
+        state: directory
+        recurse: yes
+        owner: antmedia
+        group: antmedia
+    - name: Open TCP Port 5080 for Antmedia
+      firewalld:
+        port: 5080/tcp
+        zone: public
+        permanent: yes
+        state: enabled
+        immediate: yes
+    - name: Register Antmedia Service
+      systemd:
+        name: antmedia
+        enabled: yes
+        state: started
