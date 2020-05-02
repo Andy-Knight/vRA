@@ -82,6 +82,7 @@
         owner: antmedia
         group: antmedia
         state: link
+        mode: a+rwx
     - name: Edit Antmedia Service File
       lineinfile:
         path: /usr/local/antmedia/antmedia.service
