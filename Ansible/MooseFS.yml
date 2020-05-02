@@ -106,6 +106,13 @@
         regexp: '^# MASTER_HOST = mfsmaster'
         line: MASTER_HOST = {{ mfsmasterserver }}
         backrefs: yes
+    - name: Open Chunk Server Port in Firewall (TCP 9420)
+      firewalld:
+        port: 9422/tcp
+        zone: public
+        permanent: yes
+        state: enabled
+        immediate: yes
     - name: Enable MooseFS Chunk Server
       systemd:
         name: moosefs-chunkserver
