@@ -1,0 +1,70 @@
+name: CentOS7-vRadiate-Ansible-OnPrem
+version: 1.2
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'nsxBacked:No'
+        - tag: 'networkClassification:Static'
+        - tag: 'location:EMEA'
+  MooseFS_Master:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS
+      flavor: Linux-Small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+  MooseFS_Chunk:
+    type: Cloud.vSphere.Machine
+    dependsOn:
+      - MooseFS_Master
+    properties:
+      image: CentOS
+      flavor: Linux-Small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      attachedDisks:
+        - source: '${resource.Cloud_vSphere_Disk_1.id}'
+  Cloud_vSphere_Disk_1:
+    type: Cloud.vSphere.Disk
+    properties:
+      capacityGb: 10
+  Cloud_Ansible_1:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource.MooseFS_Master.*}'
+      osType: linux
+      account: ansible
+      username: admin
+      groups:
+        - MooseFS
+        - MooseFSMaster
+      playbooks:
+        provision:
+          - '/etc/ansible/playbooks/MooseFS.yml --extra-vars "mfsmaster=${resource.MooseFS_Master.networks.address[0]}"'
+      privateKeyFile: /home/admin/.ssh/ansible_private
+  Cloud_Ansible_2:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource.MooseFS_Chunk.*}'
+      osType: linux
+      account: ansible
+      username: admin
+      groups:
+        - MooseFS
+        - MooseFSChunk
+      playbooks:
+        provision:
+          - '/etc/ansible/playbooks/MooseFS.yml --extra-vars "mfsmaster=${resource.MooseFS_Master.networks.address[0]}"'
+      privateKeyFile: /home/admin/.ssh/ansible_private
