@@ -1,0 +1,66 @@
+name: Ansible-Server-Public-Cloud
+version: 1.1 
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+  Cloud_Machine_1:
+    type: Cloud.Machine
+    properties:
+      image: Public-Cloud-Linux
+      flavor: Public-Cloud-Small
+      remoteAccess:
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAhDzRH6TsuyJPURbNShMdWnkDAlTPWrnJCVMGTfcgdSG2lDTy5Kq+UKhGuASV53HSADecJph+3mP+rEyUwug25GN9rFpJyxBkJl/pFL/d6sl5PhXdJ6c01XYakPqveXRbLuYk/zQPPG2JXM2s6Xwtigig16sx28q/cRfONA6v2qxnFSR6ESOcCQBrpMhiRIlQ7nV9LTPNX3U7evhpkTQYZNm2kxCKWuRC3/olTWPhOk9FbsQuyY/X2WlYjrc+UpXB52Xc8n4qyELZYRy3w1lmEZlERu/eEI3NZZKRYW58lo7Ek0iijT8UUJyBRtlPDbcUlP0qCzuMIutosrKSERSNcw== rsa-key-20190704
+        authentication: publicPrivateKey
+      networks:
+        - network: '${resource.Cloud_Network_1.id}'
+      cloudConfig: |
+        #cloud-config
+        ssh_keys:
+          rsa_private: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIEoQIBAAKCAQEAhDzRH6TsuyJPURbNShMdWnkDAlTPWrnJCVMGTfcgdSG2lDTy
+            5Kq+UKhGuASV53HSADecJph+3mP+rEyUwug25GN9rFpJyxBkJl/pFL/d6sl5PhXd
+            J6c01XYakPqveXRbLuYk/zQPPG2JXM2s6Xwtigig16sx28q/cRfONA6v2qxnFSR6
+            ESOcCQBrpMhiRIlQ7nV9LTPNX3U7evhpkTQYZNm2kxCKWuRC3/olTWPhOk9FbsQu
+            yY/X2WlYjrc+UpXB52Xc8n4qyELZYRy3w1lmEZlERu/eEI3NZZKRYW58lo7Ek0ii
+            jT8UUJyBRtlPDbcUlP0qCzuMIutosrKSERSNcwIBJQKCAQByXhylvxHt9CjsL2Vw
+            fzv7ODn0LaxqJCN9r5a/+FNsONVB6Jq37Z2tip4G7zWJ5eYOBpTjHBqyf/7aNGT7
+            mGbTXPcRmjH7uyYvBtdr5DWMyexRXwR1Ulc1J9+f+2dUSPTqSoDct2cfgVQ0ljSu
+            QeIyMPnPR/PFAmBhz2Y63EUQJSga0i1zjdJgf4I/R6j2QatQfNJVJRN43pFtqsUR
+            7LtWVzJtyp/gVehLPNeIkiyzEbZwzm6BQlyfqLeVmL9HuUX8cBFXYGhPXpPHFCVy
+            eQoDiGJZJjAe17QykTeqgL0RrVRrFB6h1lBSMWUR8zLV7KoMRpIhTTvYVaKom/zK
+            kImtAoGBAMPw3jkuq0LYbU6cGmTjcXjllFjQwwCYVgTH59jPy3PNyLFNGnRtAipj
+            NI1jP68g/vNc6zm0gpIy3mxcHpT0k4RA7Q9emXWcrHYyi2kzRXBIIcNCKGLV4muj
+            yVhgATCBivy/gIgsKI1+1Fvnwq2nsbgGNoqkODb/cw03PLbEBmK5AoGBAKzFQzxU
+            3F3w/65vgyIEW+nz0NEp/e5DXd6MQxzkruv7PDL3A80SfsPlxz60Oy5qQ9cfakVP
+            mIqN79ftoAwzFAS6lzmG3TyP0QhQYgNDuAI1Yc9Ns1OXAflnUVCkSHF4k143+Nb1
+            9rnyvwiCVW6eq7fwlQZwggfxVVdogX8C1wuLAoGBAImwLXRKTtUGyVnVelS7gCtw
+            5MjKDHz1bODD01oVejWzMxTOZZ3rvFUjHgJ9F/6F45ZBS1j7YqvsZPIy5Q65s8S4
+            AIdXO2dnLRTJkmWZpmqTjVjGtJh6nxs00qzN11KEiy4ltEQDWsRLSR38zf18whKc
+            lQd6UQQNc3ESDvz4czCdAoGAPLQC3digdAiRL3NJv9gEnk6+/WHH6+4n5mih9WUa
+            3UpvGNNUXM8lnsZawwEN3+AlrHLST7QurTjJ5BU4O6M+Yoa/guoyDlwLLG9FCBDf
+            yWyzqbOEMiBMzT/5+b0uNbS+KAXT+H/u52MghnL7bA48VWJd36r9QQ+ahn6qCgfq
+            sQcCgYAZos9gjznZM+aSYIBNEHJKqL6ZAEG1iY3XOhCRqIc70EoN4mWG/mYm3eUI
+            O7aXdikBQN520JuacXbJrjZFjH1u1KRw7Fa/GT1Mu8vEDAnyI9ubQh43xAdYaCW1
+            Cwg+46mZ3FEZSc421DcWqY6HtnGcK6KpW1lLyvMjvAVGF4qE4g==
+            -----END RSA PRIVATE KEY-----
+        runcmd:
+          - yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          - yum install -y ansible
+          - cp /etc/ssh/ssh_host_rsa_key /etc/ansible/ansible_private
+          - touch /etc/ansible/vault_pass
+          - mkdir /etc/ansible/playbooks
+          - echo 'VMware1!' >> /etc/ansible/vault_pass
+          - sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg
+          - sed -i 's/#remote_user = root/remote_user = ec2-user/g' /etc/ansible/ansible.cfg
+          - sed -i 's/#private_key_file = \/path\/to\/file/private_key_file = \/etc\/ansible\/ansible_private/g' /etc/ansible/ansible.cfg
+          - sed -i 's/#vault_password_file = \/path\/to\/vault_password_file/vault_password_file = \/etc\/ansible\/vault_pass/g' /etc/ansible/ansible.cfg
+          - curl https://raw.githubusercontent.com/Andy-Knight/vRA/master/Ansible/AntMedia.yml > /etc/ansible/playbooks/AntMedia.yml
+          - curl https://raw.githubusercontent.com/Andy-Knight/vRA/master/Ansible/MooseFS.yml > /etc/ansible/playbooks/MooseFS.yml
+          - chmod 777 -R /etc/ansible
+          - chmod 644 /etc/ansible/vault_pass
+          - ansible-vault create --vault-password-file /etc/ansible/vault_pass /etc/ansible/passwordVault.yml
