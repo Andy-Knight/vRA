@@ -1,3 +1,5 @@
+name: DBaaS-CloudInit
+version: 1.0
 formatVersion: 1
 inputs:
   dbInstanceName:
