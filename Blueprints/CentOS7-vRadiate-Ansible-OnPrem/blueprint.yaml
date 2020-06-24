@@ -1,71 +1,202 @@
 name: CentOS7-vRadiate-Ansible-OnPrem
-version: 1.3
+version: 1.1
 formatVersion: 1
-inputs: {}
+inputs:
+  environment:
+    type: string
+    description: Name of the environment
+    title: Environment Name
+    default: Production
+  ant_secondary_quantity:
+    type: integer
+    description: Number of additional media servers to create not including the master
+    title: Additional ANT Servers
+    default: 0
+  lb_service_name:
+    type: string
+    description: FQDN for the local load balancer virtual service created in AVI
+    title: Local LB FQDN
+    default: stream.test.cmlab.local
 resources:
   Cloud_vSphere_Network_1:
     type: Cloud.vSphere.Network
     properties:
       networkType: existing
-      constraints:
-        - tag: 'nsxBacked:No'
-        - tag: 'networkClassification:Static'
-        - tag: 'location:EMEA'
-  MooseFS_Master:
+  MFS_Master_Server:
     type: Cloud.vSphere.Machine
     properties:
-      image: CentOS
-      flavor: Linux-Small
+      image: im-CentOS7
+      flavor: fl-small
       networks:
         - network: '${resource.Cloud_vSphere_Network_1.id}'
           assignment: static
       constraints:
-        - tag: 'clusterType:Normal'
-        - tag: 'location:EMEA'
-  MooseFS_Chunk:
+        - tag: 'target:vsphere'
+        - tag: 'env:prod'
+  MFS_Chunk_Server:
     type: Cloud.vSphere.Machine
     dependsOn:
-      - MooseFS_Master
+      - MFS_Master_Server
     properties:
-      image: CentOS
-      flavor: Linux-Small
+      count: 2
+      image: im-CentOS7
+      flavor: fl-small
       networks:
         - network: '${resource.Cloud_vSphere_Network_1.id}'
           assignment: static
       constraints:
-        - tag: 'clusterType:Normal'
-        - tag: 'location:EMEA'
-      attachedDisks:
-        - source: '${resource.Cloud_vSphere_Disk_1.id}'
-  Cloud_vSphere_Disk_1:
-    type: Cloud.vSphere.Disk
+        - tag: 'target:vsphere'
+        - tag: 'env:prod'
+      attachedDisks: '${map_to_object(resource.vSphere_Disk1[*].id + resource.vSphere_Disk2[*].id, "source")}'
+  ANT_Media_Master_Server:
+    type: Cloud.vSphere.Machine
+    dependsOn:
+      - MFS_Chunk_Server
     properties:
-      capacityGb: 10
-  Cloud_Ansible_1:
+      image: im-CentOS7
+      flavor: fl-small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      constraints:
+        - tag: 'target:vsphere'
+        - tag: 'env:prod'
+  ANT_Media_Secondary_Server:
+    type: Cloud.vSphere.Machine
+    dependsOn:
+      - Ant_Media_Ans
+    properties:
+      count: '${input.ant_secondary_quantity}'
+      image: im-CentOS7
+      flavor: fl-small
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: static
+      constraints:
+        - tag: 'target:vsphere'
+        - tag: 'env:prod'
+  MFS_Master_Ans:
     type: Cloud.Ansible
     properties:
-      host: '${resource.MooseFS_Master.*}'
+      host: '${resource.MFS_Master_Server.*}'
       osType: linux
-      account: ansible
+      account: int-vrad20-ansible-onprem
       username: admin
       groups:
         - MooseFS
         - MooseFSMaster
+        - Wavefront
       playbooks:
         provision:
-          - '/etc/ansible/playbooks/MooseFS.yml --extra-vars mfsmaster=${resource.MooseFS_Master.networks.address[0]}'
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/Wavefront.yml
       privateKeyFile: /home/admin/.ssh/ansible_private
-  Cloud_Ansible_2:
+      hostVariables: |
+        mfsmasterserver: ${resource.MFS_Master_Server.networks.address[0]}
+        env: ${input.environment}
+        application: MooseFS
+        role: MooseFS-Master
+        cloudType: OnPrem
+  MFS_Chunk_Ans:
     type: Cloud.Ansible
+    dependsOn:
+      - MFS_Master_Ans
     properties:
-      host: '${resource.MooseFS_Chunk.*}'
+      host: '${resource.MFS_Chunk_Server.*}'
+      count: 2
       osType: linux
-      account: ansible
+      account: int-vrad20-ansible-onprem
       username: admin
       groups:
         - MooseFS
         - MooseFSChunk
+        - Wavefront
       playbooks:
         provision:
-          - '/etc/ansible/playbooks/MooseFS.yml --extra-vars mfsmaster=${resource.MooseFS_Master.networks.address[0]}'
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/Wavefront.yml
       privateKeyFile: /home/admin/.ssh/ansible_private
+      hostVariables: |
+        mfsmasterserver: ${resource.MFS_Master_Server.networks.address[0]}
+        env: ${input.environment}
+        application: MooseFS
+        role: MooseFS-Chunk
+        cloudType: OnPrem
+  Ant_Media_Ans:
+    type: Cloud.Ansible
+    dependsOn:
+      - MFS_Chunk_Ans
+    properties:
+      host: '${resource.ANT_Media_Master_Server.*}'
+      osType: linux
+      account: int-vrad20-ansible-onprem
+      username: admin
+      groups:
+        - MooseFS
+        - AntMedia
+        - Wavefront
+      playbooks:
+        provision:
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/AntMedia.yml
+          - /etc/ansible/playbooks/Wavefront.yml
+          - /etc/ansible/playbooks/AntMediaCustom.yml
+      privateKeyFile: /home/admin/.ssh/ansible_private
+      hostVariables: |
+        mfsmasterserver: ${resource.MFS_Master_Server.networks.address[0]}
+        env: ${input.environment}
+        application: Ant-Media
+        role: Media-Server
+        cloudType: OnPrem
+  Ant_Media_Ans_Sec:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource.ANT_Media_Secondary_Server.*}'
+      count: '${input.ant_secondary_quantity}'
+      osType: linux
+      account: int-vrad20-ansible-onprem
+      username: admin
+      groups:
+        - MooseFS
+        - AntMedia
+        - Wavefront
+      playbooks:
+        provision:
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/AntMedia.yml
+          - /etc/ansible/playbooks/Wavefront.yml
+          - /etc/ansible/playbooks/AntMediaCustom.yml
+      privateKeyFile: /home/admin/.ssh/ansible_private
+      hostVariables: |
+        mfsmasterserver: ${resource.MFS_Master_Server.networks.address[0]}
+        env: ${input.environment}
+        application: Ant-Media
+        role: Media-Server
+        cloudType: OnPrem
+  vSphere_Disk1:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: 1
+      capacityGb: 5
+  vSphere_Disk2:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: 0
+      capacityGb: 1
+  NSX_Adv_Virtualservice:
+    type: Custom.NSXAdv.virtualservice
+    dependsOn:
+      - ANT_Media_Master_Server
+      - ANT_Media_Secondary_Server
+    properties:
+      name: '${input.lb_service_name}'
+      instances: '${resource.ANT_Media_Secondary_Server[*].id + resource.ANT_Media_Master_Server[*].id}'
+      instanceCount: '${input.ant_secondary_quantity}'
+      port: '443'
+      protocol: HTTPS
+      instancePort: '80'
+      instanceProtocol: HTTP
+      network: '${resource.Cloud_vSphere_Network_1.id}'
+      healthCheckConfiguration:
+        protocol: TCP
+        port: 443
