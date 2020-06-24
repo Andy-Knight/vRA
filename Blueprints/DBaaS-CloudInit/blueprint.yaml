@@ -1,0 +1,56 @@
+formatVersion: 1
+inputs:
+  dbInstanceName:
+    title: DB Instance Name
+    description: Name of the database to create on this instance
+    type: string
+    default: Database1
+  saPassword:
+    title: Password for the SQL SA account
+    description: Password to assign to the SA account of the SQL instance being deployed
+    type: string
+    encrypted: true
+  binaryLocation:
+    title: SQL Location
+    description: Network path location of the SQL binaries
+    type: string
+    default: \\192.168.110.10\sql2016
+  binaryConnectionUser:
+    title: Binary User
+    description: User to connect to the binary network location with
+    type: string
+    default: anon
+  binaryConnectionPassword:
+    title: Binary Password
+    description: Password for binary user
+    type: string
+    encrypted: true
+    default: password
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'location:EMEA'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: Win2016-CloudBase-Init
+      remoteAccess:
+        authentication: usernamePassword
+        username: Administrator
+        password: VMware1!
+      cpuCount: 1
+      totalMemoryMB: 4096
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      cloudConfig: |
+        #cloud-config
+        set_hostname: dbaasnew
+        runcmd:
+          - 'net use g: ${input.binaryLocation} /user:${input.binaryConnectionUser} ${input.binaryConnectionPassword}'
+          - 'powershell install-windowsfeature Net-Framework-Core'
+          - 'g:\setup.exe /ConfigurationFile=g:\ConfigurationFile.ini /IAcceptSQLServerLicenseTerms /SAPWD="${input.saPassword}"'
+          - 'sqlcmd -Q "CREATE DATABASE ${input.dbInstanceName}" -U sa -P ${input.saPassword}'
