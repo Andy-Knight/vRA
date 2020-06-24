@@ -1,0 +1,123 @@
+name: CentOS7-vRadiate-Ansible-PublicCloud
+version: 1
+formatVersion: 1
+inputs:
+  environment:
+    type: string
+    title: Environment Name
+    description: Name to tag the servers with for Wavefront monitoring
+    default: Production
+  mfs_master:
+    type: string
+    title: MFS Master IP
+    description: The IP address of the MooseFS master server
+  ant_secondary_quantity:
+    type: number
+    title: Media Server Quantity
+    description: Number of ANT Media Servers to be deployed to the public cloud site
+    minimum: 1
+    maximum: 3
+    default: 1
+  lb_service_name:
+    type: string
+    description: FQDN for the local load balancer virtual service created in AVI
+    title: Local LB FQDN
+    default: stream.test.cmlab.local
+resources:
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: natsubnet
+  MFS_Chunk_Server:
+    type: Cloud.Machine
+    properties:
+      count: 2
+      image: im-CentOS7
+      flavor: fl-small
+      remoteAccess:
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAhDzRH6TsuyJPURbNShMdWnkDAlTPWrnJCVMGTfcgdSG2lDTy5Kq+UKhGuASV53HSADecJph+3mP+rEyUwug25GN9rFpJyxBkJl/pFL/d6sl5PhXdJ6c01XYakPqveXRbLuYk/zQPPG2JXM2s6Xwtigig16sx28q/cRfONA6v2qxnFSR6ESOcCQBrpMhiRIlQ7nV9LTPNX3U7evhpkTQYZNm2kxCKWuRC3/olTWPhOk9FbsQuyY/X2WlYjrc+UpXB52Xc8n4qyELZYRy3w1lmEZlERu/eEI3NZZKRYW58lo7Ek0iijT8UUJyBRtlPDbcUlP0qCzuMIutosrKSERSNcw== rsa-key-20190704
+        authentication: publicPrivateKey
+      networks:
+        - network: '${resource.Cloud_Network_1.id}'
+          assignment: dynamic
+      constraints:
+        - tag: 'target:aws'
+      attachedDisks: '${map_to_object(resource.Disk1[*].id + resource.Disk2[*].id, "source")}'
+  ANT_Media_Secondary_Server:
+    type: Cloud.Machine
+    dependsOn:
+      - MFS_Chunk_Server
+    properties:
+      count: '${input.ant_secondary_quantity}'
+      image: im-CentOS7
+      flavor: fl-small
+      remoteAccess:
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAhDzRH6TsuyJPURbNShMdWnkDAlTPWrnJCVMGTfcgdSG2lDTy5Kq+UKhGuASV53HSADecJph+3mP+rEyUwug25GN9rFpJyxBkJl/pFL/d6sl5PhXdJ6c01XYakPqveXRbLuYk/zQPPG2JXM2s6Xwtigig16sx28q/cRfONA6v2qxnFSR6ESOcCQBrpMhiRIlQ7nV9LTPNX3U7evhpkTQYZNm2kxCKWuRC3/olTWPhOk9FbsQuyY/X2WlYjrc+UpXB52Xc8n4qyELZYRy3w1lmEZlERu/eEI3NZZKRYW58lo7Ek0iijT8UUJyBRtlPDbcUlP0qCzuMIutosrKSERSNcw== rsa-key-20190704
+        authentication: publicPrivateKey
+      networks:
+        - network: '${resource.Cloud_Network_1.id}'
+          assignment: dynamic
+      constraints:
+        - tag: 'target:aws'
+  MFS_Chunk_Ans:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource.MFS_Chunk_Server.*}'
+      count: 2
+      osType: linux
+      account: int-vrad20-ansible-onprem
+      username: centos
+      groups:
+        - MooseFS
+        - MooseFSChunk
+        - Wavefront
+      playbooks:
+        provision:
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/Wavefront.yml
+      privateKeyFile: /home/admin/.ssh/ansible_private
+      hostVariables: |
+        mfsmasterserver: ${input.mfs_master}
+        env: ${input.environment}
+        application: MooseFS
+        role: MooseFS-Chunk
+        cloudType: AWS
+  Ant_Media_Ans_Sec:
+    type: Cloud.Ansible
+    dependsOn:
+      - MFS_Chunk_Ans
+    properties:
+      host: '${resource.ANT_Media_Secondary_Server.*}'
+      count: '${input.ant_secondary_quantity}'
+      osType: linux
+      account: int-vrad20-ansible-onprem
+      username: centos
+      groups:
+        - MooseFS
+        - AntMedia
+        - Wavefront
+      playbooks:
+        provision:
+          - /etc/ansible/playbooks/MooseFS.yml
+          - /etc/ansible/playbooks/AntMedia.yml
+          - /etc/ansible/playbooks/Wavefront.yml
+          - /etc/ansible/playbooks/AntMediaCustom.yml
+      privateKeyFile: /home/admin/.ssh/ansible_private
+      hostVariables: |
+        mfsmasterserver: ${input.mfs_master}
+        env: ${input.environment}
+        application: Ant-Media
+        role: Media-Server
+        cloudType: AWS
+  Disk1:
+    type: Cloud.Volume
+    properties:
+      count: 1
+      capacityGb: 5
+  Disk2:
+    type: Cloud.Volume
+    properties:
+      count: 0
+      capacityGb: 1
