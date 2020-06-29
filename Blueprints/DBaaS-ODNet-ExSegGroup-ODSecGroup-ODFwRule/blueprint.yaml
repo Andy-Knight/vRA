@@ -1,0 +1,107 @@
+name: DBaaS-CustomResource
+version: 1.1
+formatVersion: 1
+inputs:
+  dbInstanceName:
+    title: DB Instance Name
+    description: Name of the database to create on this instance
+    type: string
+    default: Database1
+  saPassword:
+    title: Password for the SQL SA account
+    description: Password to assign to the SA account of the SQL instance being deployed
+    type: string
+    encrypted: true
+  binaryLocation:
+    title: SQL Location
+    description: Network path location of the SQL binaries
+    type: string
+    default: \\192.168.110.10\sql2016
+  binaryConnectionUser:
+    title: Binary User
+    description: User to connect to the binary network location with
+    type: string
+    default: anon
+  binaryConnectionPassword:
+    title: Binary Password
+    description: Password for binary user
+    type: string
+    encrypted: true
+    default: password
+resources:
+  NSX_Net:
+    type: Cloud.NSX.Network
+    properties:
+      networkType: routed
+      constraints:
+        - tag: 'nsxBacked:Yes'
+        - tag: 'location:EMEA'
+  SQL:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: Win2016
+      customizationSpec: Windows
+      remoteAccess:
+        authentication: usernamePassword
+        username: Administrator
+        password: VMware1!
+      cpuCount: 1
+      totalMemoryMB: 4096
+      networks:
+        - network: '${resource.NSX_Net.id}'
+          assignment: dynamic
+          securityGroups:
+            - '${resource.SQL_Sec_Group.id}'
+            - '${resource.DeploymentOpenComms.id}'
+  SQL_Sec_Group:
+    type: Cloud.SecurityGroup
+    properties:
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'Application Type:SQL'
+      securityGroupType: existing
+  Win_Modules:
+    type: Custom.GuestScript
+    dependsOn:
+      - SQL
+    properties:
+      vcfqdn: vcsa-01a.corp.local
+      machinename: '${resource.SQL.resourceName}'
+      sleepInSecs: 800
+      template_locker_creds: WindowsTemplateCreds
+      reboot: false
+      vc_cred_name: installervCenter
+      script: |
+        net use g: ${input.binaryLocation} /user:${input.binaryConnectionUser} ${input.binaryConnectionPassword}
+        install-windowsfeature Net-Framework-Core -source g:\sources\sxs
+        [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
+        install-packageprovider -name nuget -force -confirm:$false
+        install-module -name nuget -force -confirm:$false
+        install-module -name sqlserver -force -confirm:$false
+        install-module -name dbatools -force -confirm:$false
+  DeploymentOpenComms:
+    type: Cloud.SecurityGroup
+    properties:
+      securityGroupType: new
+      name: SQL-VM-Bubble
+      rules:
+        - destination: 'default.${resource.DeploymentOpenComms.name}'
+          direction: outbound
+          protocol: TCP
+          name: SQLtoSQL
+          ports: 1-4096
+  SQL_Install:
+    type: Custom.GuestScript
+    dependsOn:
+      - Win_Modules
+    properties:
+      vcfqdn: vcsa-01a.corp.local
+      machinename: '${resource.SQL.resourceName}'
+      sleepInSecs: 10
+      template_locker_creds: WindowsTemplateCreds
+      reboot: false
+      vc_cred_name: installervCenter
+      script: |
+        net use h: ${input.binaryLocation} /user:${input.binaryConnectionUser} ${input.binaryConnectionPassword}
+        h:\setup.exe /ConfigurationFile=h:\ConfigurationFile.ini /IAcceptSQLServerLicenseTerms /SAPWD="${input.saPassword}"
+        new-dbadatabase -Sqlinstance localhost -Name ${input.dbInstanceName} -Owner sa
