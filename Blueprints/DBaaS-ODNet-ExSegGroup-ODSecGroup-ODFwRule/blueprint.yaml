@@ -1,5 +1,5 @@
-name: DBaaS-CustomResource
-version: 1.1
+name: DBaaS-ODNet-ExSG-ODSG-ODFw
+version: 1.0
 formatVersion: 1
 inputs:
   dbInstanceName:
