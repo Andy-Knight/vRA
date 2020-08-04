@@ -9,6 +9,4 @@ inputs:
 timeoutSeconds: 180
 deploymentTimeoutSeconds: 600
 actionType: "SCRIPT"
-configuration:
-  const_azure-system_managed_identity: false
 memoryInMB: 300
