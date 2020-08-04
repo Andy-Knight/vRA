@@ -3,7 +3,7 @@ def handler(context, inputs):
     print(greeting)
 
     outputs = {
-      "greetings": greeting
+      "greetings123": greeting
     }
 
     return outputs
