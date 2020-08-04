@@ -1,0 +1,14 @@
+---
+exportVersion: "1"
+exportId: "8a7480aa71a7c8fb0173ba1ce31203b8"
+name: "testabc"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  target: "World"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+configuration:
+  const_azure-system_managed_identity: false
+memoryInMB: 300
