@@ -9,7 +9,7 @@ def createCMDBRecord(context, inputs):
 	baseUrl = "https://api.github.com"
 	repoString = "/repos/Andy-Knight/CS360-vRA/contents/CMDB/" + inputs["resourceNames"][0]
 
-	header = {"Authorization": "Bearer 11da7c4785f4d0953377eb06d1a7a3e23ef8c796",
+	header = {"Authorization": "Bearer INSERT_BEARER_TOKEN_HERE",
 		"Content-Type": "application/json",
 		"Accept": "application/vnd.github.v3+json"
 		}
