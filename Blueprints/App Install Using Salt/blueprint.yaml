@@ -1,0 +1,44 @@
+name: CentOS-SSC-CloudInit
+version: 1
+formatVersion: 1
+inputs:
+  appInstall:
+    type: string
+    enum:
+      - nginx
+    title: Application to Install
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'networkClassification:Static'
+        - tag: 'nsxBacked:No'
+  Cloud_vSphere_Machine_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      cloudConfigSettings: null
+      image: CentOS-CloudInit
+      flavor: Linux-Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      storage:
+        constraints:
+          - tag: 'storageClass:Gold'
+      cloudConfig: |
+        #cloud-config
+        preserve_hostname: false
+        hostname: ${self.resourceName}
+        fqdn: ${self.resourceName}.corp.local
+        runcmd:
+          - touch /tmp/iamhere.txt
+          - curl -L https://bootstrap.saltstack.com -o install_salt.sh
+          - sudo sh install_salt.sh -A ${propgroup.SaltStackConfiguration.masterAddress}
+          - sudo salt-call grains.set appToInstall ${input.appInstall}
+          - sudo salt-call state.highstate
