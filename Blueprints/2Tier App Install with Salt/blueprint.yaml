@@ -1,0 +1,63 @@
+name: CentOS-SSC-2tier-app
+version: 1
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_vSphere_Network_1:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'location:EMEA'
+        - tag: 'networkClassification:Static'
+        - tag: 'nsxBacked:No'
+  app_Server_1:
+    type: Cloud.vSphere.Machine
+    dependsOn:
+      - database_Server_1
+    properties:
+      image: CentOS-CloudInit
+      flavor: Linux-Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      storage:
+        constraints:
+          - tag: 'storageClass:Gold'
+      cloudConfig: |
+        #cloud-config
+        preserve-hostname: false
+        hostname: ${self.resourceName}.corp.local
+        runcmd:
+          - curl -L https://bootstrap.saltstack.com -o install_salt.sh
+          - sudo sh install_salt.sh -A ${propgroup.SaltStackConfiguration.masterAddress}
+          - sudo salt-call grains.set serverRole app
+          - sudo salt-call grains.set databaseServer ${resource.database_Server_1.networks.address[0]}
+          - sudo salt-call state.highstate
+  database_Server_1:
+    type: Cloud.vSphere.Machine
+    properties:
+      image: CentOS-CloudInit
+      flavor: Linux-Medium
+      constraints:
+        - tag: 'clusterType:Normal'
+        - tag: 'location:EMEA'
+      networks:
+        - network: '${resource.Cloud_vSphere_Network_1.id}'
+          assignment: dynamic
+      storage:
+        constraints:
+          - tag: 'storageClass:Gold'
+      cloudConfig: |
+        #cloud-config
+        preserve_hostname: false
+        hostname: ${self.resourceName}
+        fqdn: ${self.resourceName}.corp.local
+        runcmd:
+          - curl -L https://bootstrap.saltstack.com -o install_salt.sh
+          - sudo sh install_salt.sh -A ${propgroup.SaltStackConfiguration.masterAddress}
+          - sudo salt-call grains.set serverRole database
+          - sudo salt-call state.highstate
