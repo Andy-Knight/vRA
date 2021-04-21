@@ -1,0 +1,11 @@
+---
+exportVersion: "1"
+exportId: "8a74802675e10f570176288cb158007a"
+name: "Get CMDB Record"
+runtime: "python"
+entrypoint: "getCMDBRecord.getCMDBRecord"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 300
