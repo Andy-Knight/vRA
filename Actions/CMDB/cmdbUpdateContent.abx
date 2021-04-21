@@ -1,0 +1,11 @@
+---
+exportVersion: "1"
+exportId: "8a74802675e10f570176288e81c3007e"
+name: "Update CMDB Record"
+runtime: "python"
+entrypoint: "cmdbUpdateContent.cmdbUpdateContent"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 300
