@@ -1,0 +1,14 @@
+---
+exportVersion: "1"
+exportId: "8a74802675e10f570176288db18c007c"
+name: "Get Blob SHA"
+runtime: "python"
+entrypoint: "getCMDBBlobSha.getCMDBBlobSha"
+inputs:
+  resourceNames:
+  - "Hikru"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 300
