@@ -1,0 +1,11 @@
+---
+exportVersion: "1"
+exportId: "8a74802675e10f570176243a9d79005f"
+name: "Create CMDB Record"
+runtime: "python"
+entrypoint: "allocation.createCMDBRecord"
+timeoutSeconds: 600
+deploymentTimeoutSeconds: 900
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 300
